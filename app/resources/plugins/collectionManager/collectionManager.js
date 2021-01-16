@@ -2,12 +2,16 @@
 -- Collection manager plugin
 -----------------------------------------------------------------------------*/
 
-importScripts(  '/resources/libs/iceeventbus.js',
+importScripts(  '/resources/libs/icetemplatesystem.js',
+                '/resources/libs/iceeventbus.js',
                 '/resources/libs/Icestudio/Plugin/IcePluginGUI.js',
+                '/resources/libs/Icestudio/Plugin/IcePluginHelper.js',
                 '/resources/libs/Icestudio/Plugin/IcePluginEventBus.js' );
 
 let gui  = new IcePluginGUI();
 let ebus = new IcePluginEventBus();
+let tpl =  new IceTemplateSystem ();
+let plugin =  new IcePluginHelper();
 let pConfig = false;
 
 function init(args){
@@ -17,27 +21,22 @@ function init(args){
     console.log('Initialicing', pConfig);
     let initialHtml='<i class="close-panel" data-guievt="click" data-handler="closePanel"></i><div class="lds-grid"><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div></div><div style="color:white;text-align:center;margin-top:20px;">Coming soon</div>';
 
-    fetch('assets/css/style.css')
-    .then(response => response.text())
-    .then( cssText => {
-        console.log('CSS',cssText)
-        gui.publish('createRootNode',{id:pConfig.id, initialContent: initialHtml, stylesheet: cssText, node:args.manifest.gui});
-    });
-    
-
+     plugin.styleSheet(['assets/css/style.css','assets/css/style2.css'])
+    .then( css => {
+                gui.publish('createRootNode',{id:pConfig.id, initialContent: initialHtml, stylesheet: css, node:args.manifest.gui});
+            });
 }
 
 function guiUpdate(args){
 
-    console.log('actualizada la GUI',args)
+    console.log('GUI updated event example',args)
 }
+
 
 function closePlugin(){
 
-    console.log('Closing plugin');
     ebus.publish('plugin.terminate',{id:pConfig.id});
     self.close();
-
 }
 
 ebus.subscribe('plugin.initialSetup',init);

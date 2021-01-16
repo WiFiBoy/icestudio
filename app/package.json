@@ -1,7 +1,7 @@
 {
   "name": "icestudio",
-  "version": "0.5.1n201120",
-  "nightly": "0.5.1n201120",
+  "version": "0.5.1n210107",
+  "nightly": "0.5.1n210107",
   "flavour": "develop",
   "description": "Visual editor for open FPGA boards",
   "contributors": [
@@ -37,7 +37,7 @@
     "icon": "resources/images/icestudio-logo.png"
   },
   "apio": {
-    "min": "0.6.0",
+    "min": "0.5.0",
     "max": "1.0.0",
     "extras": [
       "blackiceprog",
@@ -46,7 +46,7 @@
       "icefunprog"
     ],
     "external": "",
-    "branch": ""
+    "branch": "develop"
   },
   "collection": "0.3.3",
   "engines": {
