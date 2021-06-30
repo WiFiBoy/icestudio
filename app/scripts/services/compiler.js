@@ -1,3 +1,5 @@
+/* jshint unused: false */
+
 'use strict';
 
 angular.module('icestudio')
@@ -142,19 +144,36 @@ angular.module('icestudio')
       return code;
     }
 
+    function digestNameBlock(block){
+        let id=block;
+        
+       if(typeof block.id !== 'undefined'){
+          id=utils.digestId(block.id);
+        
+        if(typeof block.data !== 'undefined' && 
+           typeof block.data.name !== 'undefined' &&
+           block.data.name.trim() !== ''){
+             id=`${id}__${block.data.name}`;
+           }
+         }
+         return id.replace(/(-)|(\s)/g,'');
+    }
+
     function getParams(project) {
       var params = [];
       var graph = project.design.graph;
 
       for (var i in graph.blocks) {
         var block = graph.blocks[i];
+        
         if (block.type === 'basic.constant') {
           params.push({
             name: utils.digestId(block.id),
             value: block.data.value
           });
         } else if (block.type === 'basic.memory') {
-          var name = utils.digestId(block.id);
+          let name =  utils.digestId(block.id);
+        
           params.push({
             name: name,
             value: '"' + name + '.list"'
@@ -175,6 +194,7 @@ angular.module('icestudio')
       for (var i in graph.blocks) {
         var block = graph.blocks[i];
         if (block.type === 'basic.input') {
+        
           ports.in.push({
             name: utils.digestId(block.id),
             range: block.data.range ? block.data.range : ''
@@ -318,7 +338,7 @@ angular.module('icestudio')
           var block = graph.blocks[i];
           if (block.type === 'basic.input') {
             if (wire.source.block === block.id) {
-              connections.assign.push('assign w' + w + ' = ' + utils.digestId(block.id) + ';');
+              connections.assign.push('assign w' + w + ' = ' + utils.digestId(block.id)+ ';');
             }
           } else if (block.type === 'basic.output') {
             if (wire.target.block === block.id) {
@@ -427,7 +447,7 @@ angular.module('icestudio')
                 wire.source.port === 'memory-out')) {
               var paramName = wire.target.port;
               if (block.type !== 'basic.code') {
-                paramName = utils.digestId(paramName);
+                paramName =  utils.digestId(paramName); 
               }
               var param = '';
               param += ' .' + paramName;
@@ -442,7 +462,7 @@ angular.module('icestudio')
 
           //-- Instance name
 
-          instance += ' ' + utils.digestId(block.id);
+          instance += ' ' +  utils.digestId(block.id) ;
 
           //-- Ports
 
@@ -472,7 +492,7 @@ angular.module('icestudio')
       function connectPort(portName, portsNames, ports, block) {
         if (portName) {
           if (block.type !== 'basic.code') {
-            portName = utils.digestId(portName);
+            portName =  utils.digestId(portName);
           }
           if (portsNames.indexOf(portName) === -1) {
             portsNames.push(portName);
@@ -687,7 +707,7 @@ angular.module('icestudio')
           
         }
         for (var d in dependencies) {
-          code += verilogCompiler(utils.digestId(d), dependencies[d]);
+          code += verilogCompiler( utils.digestId(d) , dependencies[d]);
         }
 
         // Code modules 
@@ -697,7 +717,7 @@ angular.module('icestudio')
           if (block) {
             if (block.type === 'basic.code') {
               data = {
-                name: name + '_' + utils.digestId(block.id),
+                name: name + '_' +  utils.digestId(block.id) ,
                 params: block.data.params,
                 ports: block.data.ports,
                 content: block.data.code //.replace(/\n+/g, '\n').replace(/\n$/g, '')
@@ -726,7 +746,7 @@ angular.module('icestudio')
               pin = block.data.pins[p];
               value = block.data.virtual ? '' : pin.value;
               code += 'set_io ';
-              code += utils.digestId(block.id);
+              code +=  utils.digestId(block.id) ;
               code += '[' + pin.index + '] ';
               code += value;
               code += '\n';
@@ -735,7 +755,7 @@ angular.module('icestudio')
             pin = block.data.pins[0];
             value = block.data.virtual ? '' : pin.value;
             code += 'set_io ';
-            code += utils.digestId(block.id);
+            code +=  utils.digestId(block.id) ;
             code += ' ';
             code += value;
             code += '\n';
@@ -820,13 +840,13 @@ angular.module('icestudio')
               pin = block.data.pins[p];
               value = block.data.virtual ? '' : pin.value;
               code += 'LOCATE COMP "';
-              code += utils.digestId(block.id);  //-- Future improvement: use pin.name. It should also be changed in the main module
+              code +=  utils.digestId(block.id) ;  //-- Future improvement: use pin.name. It should also be changed in the main module
               code += '[' + pin.index + ']" SITE "';
               code += value;
               code += '";\n';
 
               code += 'IOBUF  PORT "';
-              code += utils.digestId(block.id);
+              code +=  utils.digestId(block.id) ;
               code += '[' + pin.index + ']" ';
 
               //-- Get the pullmode property of the physical pin (its id is pin.value)
@@ -840,13 +860,13 @@ angular.module('icestudio')
             pin = block.data.pins[0];
             value = block.data.virtual ? '' : pin.value;
             code += 'LOCATE COMP "';
-            code += utils.digestId(block.id);  //-- Future improvement: use pin.name. It should also be changed in the main module
+            code +=  utils.digestId(block.id) ;  //-- Future improvement: use pin.name. It should also be changed in the main module
             code += '" SITE "';
             code += value;
             code += '";\n';
 
             code += 'IOBUF  PORT "';
-            code += utils.digestId(block.id);
+            code +=  utils.digestId(block.id) ;
             code += '" ';
 
             //-- Get the pullmode property of the physical pin (its id is pin.value)
@@ -879,7 +899,7 @@ angular.module('icestudio')
           var block = blocks[i];
           if (block.type === 'basic.memory') {
             listFiles.push({
-              name: utils.digestId(block.id) + '.list',
+              name: utils.digestId(block.id)  + '.list',
               content: block.data.list
             });
           }
@@ -1030,13 +1050,13 @@ angular.module('icestudio')
         if (block.type === 'basic.input') {
           if (block.data.name) {
             input.push({
-              id: utils.digestId(block.id),
+              id: utils.digestId(block.id) ,
               name: block.data.name.replace(/ /g, '_'),
               range: block.data.range
             });
           } else {
             input.push({
-              id: utils.digestId(block.id),
+              id:  utils.digestId(block.id) ,
               name: inputUnnamed.toString(),
             });
             inputUnnamed += 1;
@@ -1044,13 +1064,13 @@ angular.module('icestudio')
         } else if (block.type === 'basic.output') {
           if (block.data.name) {
             output.push({
-              id: utils.digestId(block.id),
+              id:  utils.digestId(block.id) ,
               name: block.data.name.replace(/ /g, '_'),
               range: block.data.range
             });
           } else {
             output.push({
-              id: utils.digestId(block.id),
+              id:  utils.digestId(block.id) ,
               name: outputUnnamed.toString()
             });
             outputUnnamed += 1;

@@ -1,5 +1,7 @@
 'use strict';
 
+
+/*jshint unused:false*/
 angular.module('icestudio')
   .service('utils', function ($rootScope,
     gettextCatalog,
@@ -22,58 +24,83 @@ angular.module('icestudio')
     SVGO,
     fastCopy) {
 
-    var _pythonExecutableCached = null;
-    // Get the system executable
+    let _pythonExecutableCached = null;
+    let _pythonPipExecutableCached = null;
+   
+    // Get the system pip executable
+    // It is available in the common.ENV_PIP object
+    this.getPythonPipExecutable = function () {
+      
+      if (!_pythonPipExecutableCached) {
+        _pythonPipExecutableCached = common.ENV_PIP;
+      }
+
+      return _pythonPipExecutableCached;
+    };
+
+    //------------------------------------------------
+    //-- Get the system python executable
+    //--
     this.getPythonExecutable = function () {
+
+      //-- If the executable was not obtained before...
       if (!_pythonExecutableCached) {
 
+        //-- The possible executables are stored in this Array
         const possibleExecutables = [];
-        if(typeof common.PYTHON_ENV !== 'undefined' &&
-        common.PYTHON_ENV .length>0){
+
+        if (typeof common.PYTHON_ENV !== 'undefined' &&
+          common.PYTHON_ENV.length > 0) {
 
           possibleExecutables.push(common.PYTHON_ENV);
 
-        }else if (common.WIN32) {
-          possibleExecutables.push('C:\\Python39\\python.exe');
-          possibleExecutables.push('C:\\Python38\\python.exe');
-          possibleExecutables.push('C:\\Python37\\python.exe');
-          possibleExecutables.push('C:\\Python36\\python.exe');
-          possibleExecutables.push('C:\\Python35\\python.exe');
-          possibleExecutables.push('py.exe -3');
-          possibleExecutables.push('python.exe');
-        } else {
-          possibleExecutables.push('/usr/local/Cellar/python/3.8.2/bin/python3');
-          possibleExecutables.push('/usr/local/Cellar/python/3.7.7/bin/python3');
-          
-          possibleExecutables.push('/usr/bin/python3.9');
-          possibleExecutables.push('/usr/bin/python3.8');
-          possibleExecutables.push('/usr/bin/python3.7');
-          possibleExecutables.push('/usr/bin/python3.6');
-          possibleExecutables.push('/usr/bin/python3.5');
-          possibleExecutables.push('/usr/bin/python3');
-          possibleExecutables.push('/usr/bin/python');
+        } //-- Possible python executables in Windows
+          else if (common.WIN32) {
+            possibleExecutables.push('C:\\Python39\\python.exe');
+            possibleExecutables.push('C:\\Python38\\python.exe');
+            possibleExecutables.push('C:\\Python37\\python.exe');
+            possibleExecutables.push('C:\\Python36\\python.exe');
+            possibleExecutables.push('C:\\Python35\\python.exe');
+            possibleExecutables.push('py.exe -3');
+            possibleExecutables.push('python.exe');
 
-          possibleExecutables.push('/usr/local/bin/python3.9');
-          possibleExecutables.push('/usr/local/bin/python3.8');
-          possibleExecutables.push('/usr/local/bin/python3.7');
-          possibleExecutables.push('/usr/local/bin/python3.6');
-          possibleExecutables.push('/usr/local/bin/python3.5');
-          possibleExecutables.push('/usr/local/bin/python3');
-          possibleExecutables.push('/usr/local/bin/python');
+        } //-- Python executables in Linux/Mac
+          else {
+            possibleExecutables.push('/usr/local/Cellar/python/3.8.2/bin/python3');
+            possibleExecutables.push('/usr/local/Cellar/python/3.7.7/bin/python3');
 
-          possibleExecutables.push('python3.9');
-          possibleExecutables.push('python3.8');
-          possibleExecutables.push('python3.7');
-          possibleExecutables.push('python3.6');
-          possibleExecutables.push('python3.5');
-          possibleExecutables.push('python3');
-          possibleExecutables.push('python');
+            possibleExecutables.push('/usr/bin/python3.9');
+            possibleExecutables.push('/usr/bin/python3.8');
+            possibleExecutables.push('/usr/bin/python3.7');
+            possibleExecutables.push('/usr/bin/python3.6');
+            possibleExecutables.push('/usr/bin/python3.5');
+            possibleExecutables.push('/usr/bin/python3');
+            possibleExecutables.push('/usr/bin/python');
 
+            possibleExecutables.push('/usr/local/bin/python3.9');
+            possibleExecutables.push('/usr/local/bin/python3.8');
+            possibleExecutables.push('/usr/local/bin/python3.7');
+            possibleExecutables.push('/usr/local/bin/python3.6');
+            possibleExecutables.push('/usr/local/bin/python3.5');
+            possibleExecutables.push('/usr/local/bin/python3');
+            possibleExecutables.push('/usr/local/bin/python');
+
+            possibleExecutables.push('python3.9');
+            possibleExecutables.push('python3.8');
+            possibleExecutables.push('python3.7');
+            possibleExecutables.push('python3.6');
+            possibleExecutables.push('python3.5');
+            possibleExecutables.push('python3');
+            possibleExecutables.push('python');
         }
-        for (var i in possibleExecutables) {
-          var executable = possibleExecutables[i];
+
+        //-- Move through all the possible executables
+        //-- checking if they are executable
+        for (let executable of possibleExecutables) {
+
           if (isPython3(executable)) {
             _pythonExecutableCached = executable;
+            console.log("Executable: " + executable);
             break;
           }
         }
@@ -81,7 +108,8 @@ angular.module('icestudio')
       return _pythonExecutableCached;
     };
 
-    function isPython3(executable) {
+
+    function isValidPip(executable) {
 
       executable += ' -V';
       try {
@@ -94,6 +122,32 @@ angular.module('icestudio')
         return false;
       }
     }
+
+
+    //---------------------------------------------------------
+    //-- Check if the given file is a python3 interpreter 
+    //--
+    function isPython3(executable) {
+
+      //-- Add the '-V' flag for reading the python version
+      executable += ' -V';
+
+      try {
+
+        //-- Run the executable
+        const result = nodeChildProcess.execSync(executable);
+
+        //-- Check the output. Return true if it is python3
+        return (result !== false && result !== null &&
+          (result.toString().indexOf('3.5') >= 0 || result.toString().indexOf('3.6') >= 0 ||
+            result.toString().indexOf('3.7') >= 0 || result.toString().indexOf('3.8') >= 0 ||
+            result.toString().indexOf('3.9') >= 0));
+
+      } catch (e) {
+        return false;
+      }
+    }
+
 
     this.extractZip = function (source, destination, callback) {
       nodeExtract(source, {
@@ -132,28 +186,102 @@ angular.module('icestudio')
       document.addEventListener('keypress', disableEvent, true);
     };
 
+    //--------------------------------------------------------------
+    //-- Execute the given system command
+    //-- command is an array of string containing the commands to
+    //-- execute along with the arguments
+    //--
     this.executeCommand = function (command, callback) {
-      var cmd = command.join(' ');
-      //const fs = require('fs');
-      if (typeof common.DEBUGMODE !== 'undefined' &&
-        common.DEBUGMODE === 1) {
 
-        nodeFs.appendFileSync(common.LOGFILE, 'utils.executeCommand=>' + cmd + "\n");
+      //-- Construct a string with the full command
+      let cmd = command.join(' ');
+      let _this = this;
+
+      //-- Show the command in the DEBUG log
+      iceConsole.log(`>>>> utils.executeCommand => ${cmd}\n`);
+
+      //-- Array for storing the arguments
+      let args = [];
+
+      //-- Get the arguments, if any
+      if (command.length > 0) {
+        args = command.slice(1);
       }
-      nodeChildProcess.exec(cmd,
-        function (error, stdout, stderr) {
-          common.commandOutput = command.join(' ') + '\n\n' + stdout + stderr;
-          $(document).trigger('commandOutputChanged', [common.commandOutput]);
-          if (error) {
-            this.enableKeyEvents();
-            this.enableClickEvents();
-            callback(true);
-            alertify.error(error.message, 30);
-          } else {
-            callback();
-          }
-        }.bind(this)
-      );
+
+      //-- Execute the command in background!!
+      let proccess = nodeChildProcess.spawn(command[0], args, { shell: true });
+
+      //-- When there are outputs available from the command...
+      proccess.stdout.on('data', function (data) {
+
+        //-- Show the output in the log
+        iceConsole.log(`>>(OUTPUT): ${data}\n`);
+
+        common.commandOutput = command.join(' ') + '\n\n' + data;
+        $(document).trigger('commandOutputChanged', [common.commandOutput]);
+      });
+
+      //-- If there are errors ...
+      proccess.stderr.on('data', function (data) {
+
+        //-- Show them in the log file
+        iceConsole.log(`>>(ERROR): ${data}\n`);
+        
+        common.commandOutput = command.join(' ') + '\n\n' + data;
+        $(document).trigger('commandOutputChanged', [common.commandOutput]);
+      });
+
+      proccess.on('close', function (code) {
+        if (code !== 0) {
+          _this.enableKeyEvents();
+          _this.enableClickEvents();
+          iceConsole.log("----!!!! ERROR !!!! -----");
+          iceConsole.log("CMD: " + command);
+          callback(true);
+          alertify.error('Error executting command ' + command, 30);
+        } else {
+          callback();
+        }
+      });
+
+      proccess.on('exit', function (code) {
+        if (code !== 0) {
+          _this.enableKeyEvents();
+          _this.enableClickEvents();
+          callback(true);
+          alertify.error(common.commandOutput, 30);
+        } else {
+          callback();
+        }
+      });
+
+    };
+
+    //------------------------------------------
+    //-- Return a String with the Apio version
+    //
+    this.printApioVersion = function (version) {
+      let msg = "";
+
+      switch(version) {
+        case common.APIO_VERSION_LATEST_STABLE:
+          msg = "Apio LATEST STABLE version";
+          break;
+        
+        case common.APIO_VERSION_STABLE:
+          msg = "Apio STABLE version";
+          break;
+
+        case common.APIO_VERSION_DEV:
+          msg = "Apio DEVELOPMENT VERSION";
+          break;
+
+        default:
+          msg = "UNKNOWN apio Version (ERROR)";
+          break;
+      }
+
+      return msg;
     };
 
     //------------------------------------------
@@ -172,10 +300,8 @@ angular.module('icestudio')
       //-- Check if the venv folder exist
       if (!nodeFs.existsSync(common.ENV_DIR)) {
 
-        //-- Construct the command for creating the virtual env:
         //-- python -m venv venv
         var command = [this.getPythonExecutable(), '-m venv', coverPath(common.ENV_DIR)];
-
         //-- Check if extra parameter is needed for windows...
         if (common.WIN32) {
           //command.push('--always-copy');
@@ -183,52 +309,15 @@ angular.module('icestudio')
         this.executeCommand(command, callback);
 
       } else {
-        //-- The virtual environmente already existed
+        //-- The virtual environment already existed
         callback();
       }
     };
 
-    this.checkDefaultToolchain = function () {
-      try {
-        // TODO: use zip with sha1
-        return nodeFs.statSync(common.TOOLCHAIN_DIR).isDirectory();
-      } catch (err) {
-        return false;
-      }
-    };
 
-    this.installDefaultPythonPackagesDir = function (defaultDir, callback) {
-      var self = this;
-      nodeGlob(nodePath.join(defaultDir, '*.*'), {}, function (error, files) {
-        if (!error) {
-          files = files.map(function (item) {
-            return coverPath(item);
-          });
-          self.executeCommand([coverPath(common.ENV_PIP), 'install', '-U', '--no-deps'].concat(files), callback);
-        }
-      });
-    };
-
-    this.extractDefaultPythonPackages = function (callback) {
-      this.extractZip(common.DEFAULT_PYTHON_PACKAGES_ZIP, common.DEFAULT_PYTHON_PACKAGES_DIR, callback);
-    };
-
-    this.installDefaultPythonPackages = function (callback) {
-      this.installDefaultPythonPackagesDir(common.DEFAULT_PYTHON_PACKAGES_DIR, callback);
-    };
-
-    this.extractDefaultApio = function (callback) {
-      this.extractZip(common.DEFAULT_APIO_ZIP, common.DEFAULT_APIO_DIR, callback);
-    };
-
-    this.installDefaultApio = function (callback) {
-      this.installDefaultPythonPackagesDir(common.DEFAULT_APIO_DIR, callback);
-    };
-
-    this.extractDefaultApioPackages = function (callback) {
-      this.extractZip(common.DEFAULT_APIO_PACKAGES_ZIP, common.APIO_HOME_DIR, callback);
-    };
-
+    //-----------------------------------------------------------------
+    //-- Check if there is internet connection
+    //--
     this.isOnline = function (callback, error) {
       nodeOnline({
         timeout: 5000
@@ -242,32 +331,112 @@ angular.module('icestudio')
       });
     };
 
-    this.installOnlinePythonPackages = function (callback) {
-      var pythonPackages = [];
-      this.executeCommand([coverPath(common.ENV_PIP), 'install', '-U'] + pythonPackages, callback);
-    };
 
+    //-----------------------------------------------------
+    //-- Install the Apio toolchain. The version to install is taken
+    //-- from the common.APIO_VERSION object
+    //--
+    //-- Installing the apio stable:
+    //-- Ej.  pip install -U apio[extra packages]==0.6.0
+    //
+    //-- Installing the apio latest stable:
+    //-- Ej.  pip install -U apio[extra packages]
+    //
+    //-- Installing the apio dev:
+    //-- Ej.  pip install -U git+https://github.com/FPGAwars/apio.git@develop#egg=apio
+    //
     this.installOnlineApio = function (callback) {
-      var versionRange = '">=' + _package.apio.min + ',<' + _package.apio.max + '"';
-      var extraPackages = _package.apio.extras || [];
-      var apio = this.getApioInstallable();
-      this.executeCommand([coverPath(common.ENV_PIP), 'install', '-U', apio + '[' + extraPackages.toString() + ']' + versionRange], callback);
+      
+      console.log("UTILS: InstallOnlineApio: " + this.printApioVersion(common.APIO_VERSION));
+
+      //-- Get the extra python packages to install
+      let extraPackages = _package.apio.extras || [];
+
+      //-- Get the pip string with the version
+      //-- Stable: "==0.6.0"
+      //-- Latest stable and dev: ""
+      let versionString = "";
+
+      if (common.APIO_VERSION === common.APIO_VERSION_STABLE) {
+        versionString = "==" + _package.apio.min;
+      }
+
+      //-- Get the apio package name:
+      //-- Stable and latest stable: "apio"
+      //-- dev: "git+https://github.com/FPGAwars/apio.git@develop#egg=apio"
+      let apio = (common.APIO_VERSION === common.APIO_VERSION_DEV) ? common.APIO_PIP_VCS : "apio";
+
+      //-- Get the pip executable
+      let pipExec = this.getPythonPipExecutable();
+
+      //-- Place the executable between quotes ("") just in case there
+      //-- is a path with spaces in their names
+      const executable = coverPath(pipExec);
+
+      //-- Get the pip parameters needed for installing apio
+      const params = this.getApioParameters();
+
+      //-- Run the pip command!
+      this.executeCommand([executable, params], callback);
     };
 
-    this.getApioInstallable = function () {
-      return _package.apio.branch ?
-        common.APIO_PIP_VCS.replace('%BRANCH%', _package.apio.branch) : 'apio';
+    
+    //------------------------------------------------
+    //-- Return the parameters needed for pip for installing  
+    //-- the apio toolchains. The version to install is read  
+    //-- from the common.APIO_VERSION global object
+    //--
+    this.getApioParameters = function () {
+
+      //-- Get the extra python packages to install
+      let extraPackages = _package.apio.extras || [];
+
+      //-- Get the pip string with the version
+      //-- Stable: "==0.6.0"
+      //-- Latest stable and dev: ""
+      let versionString = "";
+
+      if (common.APIO_VERSION === common.APIO_VERSION_STABLE) {
+        versionString = "==" + _package.apio.min;
+      }  
+
+      //-- Get the apio package name:
+      //-- Stable and latest stable: "apio"
+      //-- dev: "git+https://github.com/FPGAwars/apio.git@develop#egg=apio"
+      let apio = (common.APIO_VERSION === common.APIO_VERSION_DEV) ? common.APIO_PIP_VCS : "apio";
+
+      //-- Get the pip params for installing apio
+      const params = "install -U " + apio + "[" + extraPackages.toString() + "]" + versionString;
+
+      return params;
     };
 
+    //------------------------------------------------------------------
+    //-- Install an APIO package
+    //-- apio install <pkg>
+    //--
     this.apioInstall = function (pkg, callback) {
+
+      //-- common.APIO_CMD contains the command for executing APIO
       this.executeCommand([common.APIO_CMD, 'install', pkg], callback);
     };
 
+    //-- The toolchains are NOT disabled by default
     this.toolchainDisabled = false;
 
+    //---------------------------------------------------------------------------
+    //-- Get the command that should be used for executing the apio toolchain
+    //-- This command includes the full path to apio executable, as well as  
+    //-- the setting of the APIO_HOME_DIR environment variable
     this.getApioExecutable = function () {
+      
+      //-- Check if the ICESTUDIO_APIO env variable is set with the apio toolchain to use  or  
+      //-- if it has been set on the package.json file
       var candidateApio = process.env.ICESTUDIO_APIO ? process.env.ICESTUDIO_APIO : _package.apio.external;
+
+      //-- The is an alternative apio toolchain ready
       if (nodeFs.existsSync(candidateApio)) {
+
         if (!this.toolchainDisabled) {
           // Show message only on start
           alertify.message('Using external apio: ' + candidateApio, 5);
@@ -275,14 +444,28 @@ angular.module('icestudio')
         this.toolchainDisabled = true;
         return coverPath(candidateApio);
       }
+
+      //-- There are no external apio toolchain. Use the one installed by icestudio
       this.toolchainDisabled = false;
+      
+      //-- The apio command to execute is located in the common.APIO_CMD global object
       return common.APIO_CMD;
     };
 
+
+    //-------------------------------------------------------------------------
+    //-- Remove the toolchains and related folders
+    //-- 
     this.removeToolchain = function () {
+
+      //-- Remove the Virtual environment
       this.deleteFolderRecursive(common.ENV_DIR);
-      this.deleteFolderRecursive(common.CACHE_DIR);
+
+      //-- Remove APIO
       this.deleteFolderRecursive(common.APIO_HOME_DIR);
+
+      //-- Remove the cache dir (temporal)
+      this.deleteFolderRecursive(common.CACHE_DIR);
     };
 
     this.removeCollections = function () {
@@ -291,7 +474,7 @@ angular.module('icestudio')
 
     this.deleteFolderRecursive = function (path) {
       if (nodeFs.existsSync(path)) {
-        nodeFs.readdirSync(path).forEach(function (file /*, index*/ ) {
+        nodeFs.readdirSync(path).forEach(function (file /*, index*/) {
           var curPath = nodePath.join(path, file);
           if (nodeFs.lstatSync(curPath).isDirectory()) { // recursive
             this.deleteFolderRecursive(curPath);
@@ -316,17 +499,22 @@ angular.module('icestudio')
       return nodePath.dirname(filepath);
     };
 
-    this.filepath2buildpath=function(filepath){
-    
+    this.filepath2buildpath = function (filepath) {
+
       let b = nodePath.basename(filepath);
-      let localdir=filepath.substr(0,filepath.lastIndexOf(b)); 
+      let localdir = filepath.substr(0, filepath.lastIndexOf(b));
       let dirname = b.substr(0, b.lastIndexOf('.'));
-      let path = nodePath.join(localdir,'ice-build');
-     //If we want to remove spaces return nodePath.join(path,dirname).replace(/ /g, '_');
-      return nodePath.join(path,dirname);
+      let path = nodePath.join(localdir, 'ice-build');
+      //If we want to remove spaces return nodePath.join(path,dirname).replace(/ /g, '_');
+      return nodePath.join(path, dirname);
     };
 
+
+    //----------------------------------------------------
+    //-- Read the profile file
+    //--
     this.readFile = function (filepath) {
+
       return new Promise(function (resolve, reject) {
         if (nodeFs.existsSync(common.PROFILE_PATH)) {
           nodeFs.readFile(filepath, "utf8",
@@ -349,9 +537,6 @@ angular.module('icestudio')
                     } else {
                       reject();
                     }
-
-
-
                   });
 
                 } else {
@@ -364,10 +549,7 @@ angular.module('icestudio')
                   } else {
                     reject();
                   }
-
-
                 }
-
               }
             });
         } else {
@@ -461,7 +643,7 @@ angular.module('icestudio')
 
     function getSupportedLanguages() {
       var supported = [];
-      nodeFs.readdirSync(common.LOCALE_DIR).forEach(function (element /*, index*/ ) {
+      nodeFs.readdirSync(common.LOCALE_DIR).forEach(function (element /*, index*/) {
         var curPath = nodePath.join(common.LOCALE_DIR, element);
         if (nodeFs.lstatSync(curPath).isDirectory()) {
           supported.push(splitLocale(element));
@@ -546,7 +728,7 @@ angular.module('icestudio')
             callback(evt, values);
           }
         })
-        .set('oncancel', function ( /*evt*/ ) {});
+        .set('oncancel', function ( /*evt*/) { });
       // Restore input values
       setTimeout(function () {
         $('#form0').select();
@@ -607,7 +789,7 @@ angular.module('icestudio')
         $('#preview-svg').attr('src', blankImage);
       }
 
-      var prevOnshow = alertify.confirm().get('onshow') || function () {};
+      var prevOnshow = alertify.confirm().get('onshow') || function () { };
 
       alertify.confirm()
         .set('onshow', function () {
@@ -621,7 +803,7 @@ angular.module('icestudio')
         // Open SVG
         var chooserOpen = $('#input-open-svg');
         chooserOpen.unbind('change');
-        chooserOpen.change(function ( /*evt*/ ) {
+        chooserOpen.change(function ( /*evt*/) {
           var filepath = $(this).val();
 
           nodeFs.readFile(filepath, 'utf8', function (err, data) {
@@ -650,7 +832,7 @@ angular.module('icestudio')
           label.attr('for', 'input-save-svg');
           var chooserSave = $('#input-save-svg');
           chooserSave.unbind('change');
-          chooserSave.change(function ( /*evt*/ ) {
+          chooserSave.change(function ( /*evt*/) {
             if (image) {
               var filepath = $(this).val();
               if (!filepath.endsWith('.svg')) {
@@ -673,7 +855,7 @@ angular.module('icestudio')
       function registerReset() {
         // Reset SVG
         var reset = $('#reset-svg');
-        reset.click(function ( /*evt*/ ) {
+        reset.click(function ( /*evt*/) {
           image = '';
           registerSave();
           $('#preview-svg').attr('src', blankImage);
@@ -693,7 +875,7 @@ angular.module('icestudio')
           // Restore onshow
           alertify.confirm().set('onshow', prevOnshow);
         })
-        .set('oncancel', function ( /*evt*/ ) {
+        .set('oncancel', function ( /*evt*/) {
           // Restore onshow
           alertify.confirm().set('onshow', prevOnshow);
         });
@@ -779,7 +961,7 @@ angular.module('icestudio')
     this.openDialog = function (inputID, ext, callback) {
       var chooser = $(inputID);
       chooser.unbind('change');
-      chooser.change(function ( /*evt*/ ) {
+      chooser.change(function ( /*evt*/) {
         var filepath = $(this).val();
         //if (filepath.endsWith(ext)) {
         if (callback) {
@@ -794,7 +976,7 @@ angular.module('icestudio')
     this.saveDialog = function (inputID, ext, callback) {
       var chooser = $(inputID);
       chooser.unbind('change');
-      chooser.change(function ( /*evt*/ ) {
+      chooser.change(function ( /*evt*/) {
         var filepath = $(this).val();
         if (!filepath.endsWith(ext)) {
           filepath += ext;
@@ -915,8 +1097,10 @@ angular.module('icestudio')
 
     };
 
+    //-- Place the path inside quotes. It is important for managing filepaths
+    //-- that contains spaces in ther names
     this.coverPath = coverPath;
-
+    
     function coverPath(filepath) {
       return '"' + filepath + '"';
     }
@@ -1153,6 +1337,8 @@ angular.module('icestudio')
       return evt.ctrlKey;
     };
 
+    //------------------------------------------------------
+    //-- Load the profile file
     this.loadProfile = function (profile, callback) {
       profile.load(function () {
         if (callback) {
